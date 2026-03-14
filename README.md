@@ -1,5 +1,8 @@
 ![](images/PSNetworkUtils-icon-128x128.png)  
   
+> **Note**
+> This module has yet to be completed or published to the gallery, but the repository has been set to public. Some docs/imports may not be accurate or function properly.
+
 # PSNetworkUtils  
   
 A basic cross-platform script module containing network utilities.
