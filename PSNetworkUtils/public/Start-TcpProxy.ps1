@@ -14,39 +14,36 @@ function Start-TcpProxy {
     Write-Host "Starting TCP Proxy..." -ForegroundColor Cyan
     Write-Host "Listening on: 0.0.0.0:$LocalPort -> Forwarding to: $RemoteHost : $RemotePort"
 
-    # Initialize the local TCP Listener
+    # Init listener
     $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $LocalPort)
     $listener.Start()
 
     try {
         Write-Host "Waiting for a client connection..."
         
-        # Block until a client connects
         $client = $listener.AcceptTcpClient()
         $clientIp = $client.Client.RemoteEndPoint.ToString()
         Write-Host "Client connected from: $clientIp" -ForegroundColor Green
 
         Write-Host "Establishing connection to remote destination $RemoteHost : $RemotePort ..."
         
-        # Connect to the target destination
         $remoteClient = [System.Net.Sockets.TcpClient]::new()
         $remoteClient.Connect($RemoteHost, $RemotePort)
         Write-Host "Connected to remote destination." -ForegroundColor Green
 
-        # Get the network streams for both ends
         $clientStream = $client.GetStream()
         $remoteStream = $remoteClient.GetStream()
 
-        # Allocate an 8KB buffer for data transfer
-        $buffer = New-Object byte[] 8192
+        
+        $buffer = New-Object byte[] 8192   # Allocate an 8KB buffer for data transfer
 
         Write-Host "Proxy active. Relaying data... (Press Ctrl+C to stop)" -ForegroundColor Yellow
 
-        # Bidirectional relay loop
+        # Relay loop <->
         while ($client.Connected -and $remoteClient.Connected) {
             $dataRelayed = $false
 
-            # Route traffic: Client -> Remote
+            # Client -> Remote
             if ($clientStream.DataAvailable) {
                 $bytesRead = $clientStream.Read($buffer, 0, $buffer.Length)
                 if ($bytesRead -gt 0) {
@@ -55,7 +52,7 @@ function Start-TcpProxy {
                 }
             }
 
-            # Route traffic: Remote -> Client
+            #  Remote -> Client
             if ($remoteStream.DataAvailable) {
                 $bytesRead = $remoteStream.Read($buffer, 0, $buffer.Length)
                 if ($bytesRead -gt 0) {
@@ -64,7 +61,7 @@ function Start-TcpProxy {
                 }
             }
 
-            # Sleep briefly to prevent pinning the CPU at 100% when idle
+            # Hoping to prevent max CPU util
             if (-not $dataRelayed) {
                 Start-Sleep -Milliseconds 10
             }
@@ -76,7 +73,6 @@ function Start-TcpProxy {
     finally {
         Write-Host "Closing connection and stopping proxy..." -ForegroundColor Cyan
         
-        # Safely clean up streams and sockets
         if ($null -ne $clientStream) { $clientStream.Close() }
         if ($null -ne $remoteStream) { $remoteStream.Close() }
         if ($null -ne $client) { $client.Close() }
